@@ -1,0 +1,47 @@
+[package]
+name = "agent-server"
+description = "HTTP/WebSocket server for rust-agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "agent-server"
+path = "src/main.rs"
+
+[dependencies]
+# Workspace crates
+agent-core = { path = "../agent-core" }
+agent-runtime = { path = "../agent-runtime" }
+agent-payments = { path = "../agent-payments" }
+
+# Async runtime
+tokio = { version = "=1.42.0", features = ["full"] }
+tokio-stream = "=0.1.17"
+futures = "=0.3.31"
+
+# Web framework
+axum = { version = "=0.8.1", features = ["ws", "macros"] }
+tower = "=0.5.2"
+tower-http = { version = "=0.6.2", features = ["cors", "trace", "fs"] }
+
+# Serialization
+serde = { version = "=1.0.216", features = ["derive"] }
+serde_json = "=1.0.133"
+
+# Error handling
+thiserror = "=2.0.9"
+anyhow = "=1.0.94"
+
+# Logging
+tracing = "=0.1.41"
+tracing-subscriber = { version = "=0.3.19", features = ["env-filter"] }
+
+# Environment
+dotenvy = "=0.15.7"
+
+# Utilities
+uuid = { version = "=1.11.0", features = ["v4"] }
+
+[lints]
+workspace = true
