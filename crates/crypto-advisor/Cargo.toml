@@ -1,0 +1,42 @@
+[package]
+name = "crypto-advisor"
+description = "Conservative cryptocurrency investment advisor with DCA and risk management"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Core agent framework
+agent-core = { path = "../agent-core" }
+
+# Async runtime
+tokio = { version = "=1.42.0", features = ["sync", "time"] }
+async-trait = "=0.1.83"
+
+# HTTP client for exchange APIs
+reqwest = { version = "=0.12.12", features = ["json"] }
+
+# Serialization
+serde = { version = "=1.0.216", features = ["derive"] }
+serde_json = "=1.0.133"
+
+# Error handling
+thiserror = "=2.0.9"
+anyhow = "=1.0.94"
+
+# Logging
+tracing = "=0.1.41"
+
+# Time & IDs
+chrono = { version = "=0.4.39", features = ["serde"] }
+uuid = { version = "=1.11.0", features = ["v4", "serde"] }
+
+# Decimal math for financial calculations (never use f64 for money)
+rust_decimal = { version = "=1.36.0", features = ["serde", "serde-with-str"] }
+rust_decimal_macros = "=1.36.0"
+
+[dev-dependencies]
+tokio = { version = "=1.42.0", features = ["rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true

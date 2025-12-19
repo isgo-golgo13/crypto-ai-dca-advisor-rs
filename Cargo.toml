@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/agent-core",
+    "crates/agent-server",
+    "crates/agent-web",
+    "crates/agent-payments",
+    "crates/agent-runtime",
+    "crates/crypto-advisor",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/your-org/rust-agent"
+authors = ["Your Name <you@example.com>"]
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+
+[profile.release]
+lto = true
+opt-level = "z"
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+
+[profile.dev.package."*"]
+opt-level = 3
