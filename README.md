@@ -32,6 +32,69 @@ A full-stack Rust LLM agent with local Ollama inference, Stripe payments, and a 
 - **Crypto Advisor** - DCA calculator, risk analyzer, portfolio tracker
 
 
+## Quick Start
+
+```bash
+# 1. Clone and setup
+git clone <your-repo>
+cd rust-agent
+make setup
+
+# 2. Start Ollama
+ollama serve &
+ollama pull llama3.2
+
+# 3. Run the server
+make dev
+
+# 4. Open http://localhost:3000
+```
+
+## Project Structure
+
+```shell
+rust-agent/
+├── Cargo.toml                 # Workspace root
+├── Makefile                   # Dev commands
+├── .env.example               # Configuration template
+├── index.html                 # WASM entry point
+├── styles.css                 # Frontend styles
+├── Trunk.toml                 # WASM build config
+│
+├── crates/
+│   ├── agent-core/            # Core abstractions
+│   │   ├── provider.rs        # LlmProvider trait (Strategy pattern)
+│   │   ├── tool.rs            # Tool trait + registry
+│   │   ├── reasoning.rs       # Agent loop (ReAct)
+│   │   └── ...
+│   │
+│   ├── agent-runtime/         # Provider implementations
+│   │   └── ollama.rs          # Ollama integration
+│   │
+│   ├── agent-server/          # HTTP server
+│   │   ├── main.rs            # Entry point
+│   │   ├── handlers.rs        # API endpoints
+│   │   └── state.rs           # Shared state
+│   │
+│   ├── agent-payments/        # Payment processing
+│   │   ├── checkout.rs        # Stripe Checkout (Hosted)
+│   │   ├── webhook.rs         # Webhook handling
+│   │   └── license.rs         # License management
+│   │
+│   ├── agent-web/             # WASM frontend
+│   │   └── src/pages/         # Leptos components
+│   │
+│   └── crypto-advisor/        # Domain-specific tools
+│       ├── svckit/            # Tools (price_lookup, dca_calculator, etc.)
+│       ├── strategy/          # DCA, diversification algorithms
+│       ├── exchange/          # Exchange API abstractions
+│       └── model.rs           # Portfolio, Asset, Position types
+│
+└── docs/
+    └── STRIPE_CHECKOUT_EXPLAINED.md
+```
+
+
 
 ## Crates Overview
 
