@@ -1,0 +1,39 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Trunk Configuration for WASM Build
+# ═══════════════════════════════════════════════════════════════════════════
+# Run: trunk serve --open (development)
+# Run: trunk build --release (production)
+
+[build]
+target = "index.html"
+dist = "static"
+
+[watch]
+watch = ["crates/agent-web/src", "index.html", "styles.css"]
+ignore = ["static", "target"]
+
+[serve]
+address = "127.0.0.1"
+port = 8080
+
+# Proxy API requests to the Rust backend
+[[serve.proxy]]
+rewrite = "/api/"
+backend = "http://localhost:3000/api/"
+
+[[serve.proxy]]
+rewrite = "/webhook/"
+backend = "http://localhost:3000/webhook/"
+
+[[serve.proxy]]
+rewrite = "/health"
+backend = "http://localhost:3000/health"
+
+[clean]
+dist = "static"
+cargo = true
+
+# Release build optimization
+[build.release]
+wasm_opt = "z"
+filehash = true

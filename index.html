@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>rust-agent | Crypto Advisor</title>
+    <meta name="description" content="Local LLM-powered cryptocurrency investment advisor with DCA and risk management">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Trunk will inject CSS and WASM here -->
+    <link data-trunk rel="css" href="styles.css">
+    <link data-trunk rel="rust" href="crates/agent-web/Cargo.toml" data-wasm-opt="z"/>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+</head>
+<body>
+    <noscript>
+        <div style="padding: 2rem; text-align: center; font-family: system-ui;">
+            <h1>JavaScript Required</h1>
+            <p>rust-agent requires JavaScript to run.</p>
+            <p>Please enable JavaScript and reload the page.</p>
+        </div>
+    </noscript>
+    
+    <!-- Loading indicator (replaced by Leptos) -->
+    <div id="loading" style="
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0a0a0b;
+        color: #e8e6e3;
+        font-family: 'IBM Plex Mono', monospace;
+    ">
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🦀</div>
+            <div>Loading rust-agent...</div>
+        </div>
+    </div>
+</body>
+</html>

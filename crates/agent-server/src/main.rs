@@ -1,6 +1,9 @@
 //! rust-agent HTTP Server
 //!
 //! Axum-based server providing REST API and WebSocket endpoints.
+//! 
+//! This version includes crypto-advisor tools for cryptocurrency
+//! investment guidance with DCA and risk management.
 
 mod handlers;
 mod state;
@@ -18,9 +21,15 @@ use agent_core::tool::{CalculatorTool, DateTimeTool, ToolRegistry};
 use agent_payments::{MemoryLicenseStore, StripeClient};
 use agent_runtime::OllamaProvider;
 
+// Import crypto-advisor tools
+use crypto_advisor::{
+    tools::{PriceLookupTool, DCACalculatorTool, RiskAnalyzerTool, PortfolioTrackerTool},
+    exchange::MockExchangeClient,
+};
+
 use crate::handlers::{
     chat_handler, chat_stream_handler, create_checkout, health_check, 
-    stripe_webhook, verify_license,
+    stripe_webhook, verify_license, list_models,
 };
 use crate::state::AppState;
 
@@ -42,17 +51,42 @@ async fn main() -> anyhow::Result<()> {
     
     // Verify Ollama connection
     match provider.health_check().await {
-        Ok(true) => tracing::info!("✓ Connected to Ollama"),
-        Ok(false) | Err(_) => tracing::warn!("⚠ Ollama not available - agent will fail"),
+        Ok(true) => {
+            tracing::info!("✓ Connected to Ollama");
+            // List available models
+            if let Ok(models) = provider.list_models().await {
+                for model in models {
+                    tracing::info!("  Model: {}", model.id);
+                }
+            }
+        }
+        Ok(false) | Err(_) => {
+            tracing::warn!("⚠ Ollama not available - agent will fail");
+            tracing::warn!("  Make sure Ollama is running: ollama serve");
+        }
     }
+
+    // Initialize exchange client for crypto tools
+    let exchange: Arc<dyn crypto_advisor::exchange::ExchangeClient> = 
+        Arc::new(MockExchangeClient::new());
 
     // Initialize tools
     let mut tools = ToolRegistry::new();
+    
+    // Core tools
     tools.register(DateTimeTool);
     tools.register(CalculatorTool);
-    // Add more tools here
     
-    tracing::info!("Registered {} tools: {:?}", tools.len(), tools.names());
+    // Crypto advisor tools
+    tools.register(PriceLookupTool::new(exchange.clone()));
+    tools.register(DCACalculatorTool::new(exchange.clone()));
+    tools.register(RiskAnalyzerTool::new(exchange.clone()));
+    tools.register(PortfolioTrackerTool::new(exchange.clone()));
+    
+    tracing::info!("Registered {} tools:", tools.len());
+    for name in tools.names() {
+        tracing::info!("  • {}", name);
+    }
 
     // Initialize payments
     let license_store = Arc::new(MemoryLicenseStore::new());
@@ -62,6 +96,7 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("✓ Stripe configured");
     } else {
         tracing::warn!("⚠ Stripe not configured - payments disabled");
+        tracing::warn!("  Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in .env");
     }
 
     // Build application state
@@ -80,8 +115,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Build router
     let app = Router::new()
-        // Health
+        // Health & info
         .route("/health", get(health_check))
+        .route("/api/models", get(list_models))
         
         // Agent API
         .route("/api/chat", post(chat_handler))
@@ -103,7 +139,18 @@ async fn main() -> anyhow::Result<()> {
     let addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".into());
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     
+    tracing::info!("══════════════════════════════════════════════════");
     tracing::info!("🚀 rust-agent server running on http://{}", addr);
+    tracing::info!("══════════════════════════════════════════════════");
+    tracing::info!("");
+    tracing::info!("Endpoints:");
+    tracing::info!("  GET  /health          - Health check");
+    tracing::info!("  GET  /api/models      - List available models");
+    tracing::info!("  POST /api/chat        - Send message");
+    tracing::info!("  GET  /api/chat/stream - WebSocket streaming");
+    tracing::info!("  POST /api/checkout    - Create Stripe checkout");
+    tracing::info!("  POST /api/license/verify - Verify license key");
+    tracing::info!("");
     
     axum::serve(listener, app).await?;
     

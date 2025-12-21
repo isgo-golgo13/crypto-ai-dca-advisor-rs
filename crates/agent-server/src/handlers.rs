@@ -20,6 +20,9 @@ use agent_payments::{
     LicenseVerification, Plan, WebhookHandler,
 };
 
+// Use crypto-advisor's specialized system prompt
+use crypto_advisor::CRYPTO_ADVISOR_PROMPT;
+
 use crate::state::AppState;
 
 // ============================================================================
@@ -32,6 +35,7 @@ pub struct HealthResponse {
     pub version: &'static str,
     pub ollama_connected: bool,
     pub stripe_configured: bool,
+    pub tools_available: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -43,6 +47,9 @@ pub struct ChatRequest {
     pub model: Option<String>,
     #[serde(default)]
     pub conversation_id: Option<String>,
+    /// Use crypto advisor mode (specialized prompt)
+    #[serde(default)]
+    pub crypto_mode: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -77,6 +84,12 @@ pub struct VerifyLicenseRequest {
     pub license_key: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ModelInfo {
+    pub id: String,
+    pub name: String,
+}
+
 // ============================================================================
 // Handlers
 // ============================================================================
@@ -84,13 +97,40 @@ pub struct VerifyLicenseRequest {
 /// Health check endpoint
 pub async fn health_check(State(state): State<AppState>) -> Json<HealthResponse> {
     let ollama_connected = state.provider.health_check().await.unwrap_or(false);
+    let tools_available: Vec<String> = state.tools.names().iter().map(|s| s.to_string()).collect();
     
     Json(HealthResponse {
         status: "healthy",
         version: env!("CARGO_PKG_VERSION"),
         ollama_connected,
         stripe_configured: state.stripe.is_some(),
+        tools_available,
     })
+}
+
+/// List available models
+pub async fn list_models(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<ModelInfo>>, (StatusCode, Json<ErrorResponse>)> {
+    let models = state.provider.list_models().await.map_err(|e| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(ErrorResponse {
+                error: format!("Ollama unavailable: {}", e),
+                code: "OLLAMA_ERROR".into(),
+            }),
+        )
+    })?;
+
+    let model_info: Vec<ModelInfo> = models
+        .into_iter()
+        .map(|m| ModelInfo {
+            id: m.id.clone(),
+            name: m.name,
+        })
+        .collect();
+
+    Ok(Json(model_info))
 }
 
 /// Main chat endpoint (non-streaming)
@@ -121,8 +161,17 @@ pub async fn chat_handler(
     // Get model
     let model = payload.model.clone().unwrap_or_else(|| "llama3.2".into());
     
-    // Create agent
+    // Select system prompt based on mode
+    let system_prompt = if payload.crypto_mode {
+        CRYPTO_ADVISOR_PROMPT.to_string()
+    } else {
+        // Default generic prompt
+        "You are a helpful AI assistant with access to tools. Use them when needed.".to_string()
+    };
+    
+    // Create agent config
     let config = AgentConfig {
+        system_prompt,
         generation: GenerationOptions {
             model: model.clone(),
             ..Default::default()
@@ -191,8 +240,16 @@ async fn handle_stream(socket: WebSocket, state: AppState) {
         };
 
         let model = request.model.unwrap_or_else(|| "llama3.2".into());
+        
+        // Select system prompt
+        let system_prompt = if request.crypto_mode {
+            CRYPTO_ADVISOR_PROMPT
+        } else {
+            "You are a helpful assistant."
+        };
+        
         let messages = vec![
-            agent_core::Message::system("You are a helpful assistant."),
+            agent_core::Message::system(system_prompt),
             agent_core::Message::user(request.message),
         ];
 
